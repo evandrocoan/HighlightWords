@@ -4,6 +4,8 @@ import sys
 import re
 import functools
 
+import pushdown
+
 SCOPES = ['string', 'entity.name.class', 'variable.parameter', 'invalid.deprecated', 'invalid', 'support.function']
 
 ST3 = False if sys.version_info < (3, 0) else True
@@ -12,10 +14,46 @@ IGNORE_CASE = False
 WHOLE_WORD = False # only effective when USE_REGEX is True
 KEYWORD_MAP = []
 
+_parser = pushdown.Lark( r"""
+start: SEARCH* | WORDS* | SEARCH+ WORDS+
+
+WORDS: /[^\/].*/
+SEARCH: / *(?<!\\)\/[^\/]+(?<!\\)\/ */
+SPACES: /[\t \f]+/
+
+%ignore SPACES
+""", start='start', parser='lalr', lexer='contextual' )
+
 class HighlightWordsCommand(sublime_plugin.WindowCommand):
-	def get_words(self, text):
+	def get_words(self, text, skip_search=False):
 		if USE_REGEX:
-			return list(filter(lambda x: x and x != ' ', re.split(r'((?:\\ |[^ ])+)', text)))
+			filtered_words = []
+			unfiltered_words = []
+			tree = _parser.parse(text)
+
+			for token in tree.children:
+				# print( 'token', token.pretty() )
+				if token.type == 'SEARCH':
+					regex = token.strip(' ')
+
+					if skip_search:
+						filtered_words.append( regex )
+
+					else:
+						regex = regex.strip('/')
+
+						# print('regex', regex)
+						new = re.findall(regex, self.view_text)
+
+						# print('new', new)
+						if new: filtered_words.extend( new )
+
+				elif token.type == 'WORDS':
+					unfiltered_words.append(token)
+
+			other_words = list( filter( lambda x: x and x != ' ', re.split( r'((?:\\ |[^ ])+)', " ".join( unfiltered_words ) ) ) )
+			filtered_words.extend( other_words )
+			return filtered_words
 		else:
 			return text.split()
 
@@ -23,12 +61,18 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		view = self.window.active_view()
 		if not view:
 			return
-		word_list = self.get_words(view.settings().get('highlight_text', ''))
+		self.view = view
+		self.view_text = view.substr( sublime.Region( 0, view.size() ) )
+		highlight_text = view.settings().get('highlight_text', '')
+		# print('highlight_text', highlight_text)
+
+		word_list = self.get_words(highlight_text, skip_search=True)
 		for region in view.sel():
-			region = region.empty() and view.word(region) or region
+			# region = region.empty() and view.word(region) or region
+			if region.empty(): continue
 			cursor_word = view.substr(region).strip()
 			if USE_REGEX:
-				# ST uses perl regular expression syntax, espcae all special characters
+				# ST uses perl regular expression syntax, escape all special characters
 				cursor_word = re.sub(r'([ \\.\[{}()\*+?|^$])', r'\\\1', cursor_word).replace('\t', '\\t').replace('\n', '\\n')
 				if WHOLE_WORD:
 					cursor_word = "\\b" + cursor_word + "\\b"
@@ -37,6 +81,7 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 			else:
 				word_list.append(cursor_word)
 			break
+
 		display_list = ' '.join(word_list)
 		prompt = 'Highlight words '
 		if USE_REGEX:
@@ -85,7 +130,7 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 	def on_cancel(self):
 		self.window.run_command('unhighlight_words')
 		view = self.window.active_view()
-		view.settings().erase('highlight_text')
+		# view.settings().erase('highlight_text')
 
 class UnhighlightWordsCommand(sublime_plugin.WindowCommand):
 	def run(self):
@@ -162,7 +207,10 @@ def get_settings():
 	return setting
 
 def plugin_loaded():
-	get_settings().add_on_change('get_settings', get_settings)
+	get_settings().add_on_change('HighlightWords', get_settings)
+
+def plugin_unloaded():
+	get_settings().clear_on_change('HighlightWords')
 
 if not ST3:
 	plugin_loaded()

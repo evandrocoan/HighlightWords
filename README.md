@@ -17,13 +17,20 @@ Usage
 * Edit settings file: Select "Preferences" > "Package Settings" > "HighlightWords", copy settings from default to user, and edit settings file. Available settings are:
  - "colors_by_scope": Change the highlight colors.
  - "permanent_highlight_keyword_color_mappings": Define always highlighted keywords with specified colors, such as "TODO" or "FIXIT". The optional "flag" parameter may be 0 (regex), 1 (literal), 2 (regex and ignore case) or 3 (literal and ignore case).
-* Perl-style regular expression patterns are accepted. For example, to highlight "fix a bug" but not "prefix with", the expression could be "\\bfix .*\\b".
+* Perl-style regular expression patterns are accepted.
+  For example,
+  to highlight "fix a bug" but not "prefix with",
+  the expression could be "\\bfix .\*\\b".
+* You can create a regex search targeting the words you want to match with `/regex/`.
+  For example,
+  if you enter `/(?: => )([^\s]+)/ word1` on the panel,
+  it will highlight all the words matched by the regex `([^\s]+)` plus the `word1`.
 
 Note: These commands are also available in Command Panel with prefix "**HighlightWords:**"
 
 How to find color scope
 ------------------
-  * Open the file that has some colour you want (e.g open C++ which have green strings)
+  * Open the file that has some color you want (e.g open C++ which have green strings)
   * Select the word that has colour you want to use
 
   ![selection](doc_images/selection.png)
