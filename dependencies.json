@@ -1,6 +1,7 @@
 {
     "*": {
         "*": [
+            "DebugTools",
             "PushdownParser"
         ]
     }
