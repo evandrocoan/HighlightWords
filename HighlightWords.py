@@ -6,6 +6,8 @@ import functools
 
 import pushdown
 
+from debug_tools import getLogger
+
 SCOPES = ['string', 'entity.name.class', 'variable.parameter', 'invalid.deprecated', 'invalid', 'support.function']
 
 ST3 = False if sys.version_info < (3, 0) else True
@@ -13,6 +15,10 @@ USE_REGEX = False
 IGNORE_CASE = False
 WHOLE_WORD = False # only effective when USE_REGEX is True
 KEYWORD_MAP = []
+
+
+# Debugger settings: 0 - disabled, 127 - enabled
+log = getLogger( 1, __name__ )
 
 _parser = pushdown.Lark( r"""
 start: SEARCH* | WORDS* | SEARCH+ WORDS+
@@ -27,33 +33,40 @@ SPACES: /[\t \f]+/
 class HighlightWordsCommand(sublime_plugin.WindowCommand):
 	def get_words(self, text, skip_search=False):
 		if USE_REGEX:
-			filtered_words = []
-			unfiltered_words = []
-			tree = _parser.parse(text)
 
-			for token in tree.children:
-				# print( 'token', token.pretty() )
-				if token.type == 'SEARCH':
-					regex = token.strip(' ')
+			try:
+				filtered_words = []
+				unfiltered_words = []
+				tree = _parser.parse(text)
 
-					if skip_search:
-						filtered_words.append( regex )
+				for token in tree.children:
+					# print( 'token', token.pretty() )
+					if token.type == 'SEARCH':
+						regex = token.strip(' ')
 
-					else:
-						regex = regex.strip('/')
+						if skip_search:
+							filtered_words.append( regex )
 
-						# print('regex', regex)
-						new = re.findall(regex, self.view_text)
+						else:
+							regex = regex.strip('/')
 
-						# print('new', new)
-						if new: filtered_words.extend( new )
+							# print('regex', regex)
+							new = re.findall(regex, self.view_text)
 
-				elif token.type == 'WORDS':
-					unfiltered_words.append(token)
+							# print('new', new)
+							if new: filtered_words.extend( new )
 
-			other_words = list( filter( lambda x: x and x != ' ', re.split( r'((?:\\ |[^ ])+)', " ".join( unfiltered_words ) ) ) )
-			filtered_words.extend( other_words )
-			return filtered_words
+					elif token.type == 'WORDS':
+						unfiltered_words.append(token)
+
+				other_words = list( filter( lambda x: x and x != ' ', re.split( r'((?:\\ |[^ ])+)', " ".join( unfiltered_words ) ) ) )
+				filtered_words.extend( other_words )
+				return filtered_words
+
+			except Exception as e:
+				log( "regex message:", e )
+				return text.split()
+
 		else:
 			return text.split()
 
