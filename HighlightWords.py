@@ -5,6 +5,7 @@ import re
 import functools
 
 import pushdown
+import threading
 
 from debug_tools import getLogger
 
@@ -117,11 +118,16 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		sublime.set_timeout(lambda: self.highlight(text, stamp), 500)
 
 	def highlight(self, text, stamp):
+		# print('highlight text', text)
+		# print('highlight stamp', stamp)
 		if self.stamp != stamp:
 			return
+
 		self.window.run_command('unhighlight_words')
 		view = self.window.active_view()
 		words = self.get_words(text)
+		# print('highlight words', words)
+
 		regions = []
 		size = 0
 		flag = 0
@@ -137,8 +143,10 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 			regions = view.find_all(word, flag)
 			view.add_regions('highlight_word_%d' % size, regions,  SCOPES[size % len(SCOPES)] , '', sublime.HIDE_ON_MINIMAP)
 			size += 1
+
 		view.settings().set('highlight_size', size)
 		view.settings().set('highlight_text', text)
+		# print('highlight end')
 
 	def on_cancel(self):
 		self.window.run_command('unhighlight_words')
@@ -177,7 +185,33 @@ class HighlightSettingsCommand(sublime_plugin.WindowCommand):
 		settings.set('colors_by_scope', SCOPES)
 		sublime.save_settings('HighlightWords.sublime-settings')
 
+
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
+
+	def on_post_window_command(self, window, command_name, args):
+		# print('HighlightKeywordsCommand', command_name)
+
+		if command_name in ("reload_current_view_refresh", "revert", "fix_revert"):
+
+			def delayedFix():
+				time.sleep(1)
+				# print('delayedFix running...')
+
+				window = sublime.active_window()
+				view = window.active_view()
+
+				highlighter = HighlightWordsCommand( window )
+				highlighter.view = view
+				highlighter.view_text = view.substr( sublime.Region( 0, view.size() ) )
+
+				highlight_text = view.settings().get('highlight_text', '')
+				# print('highlight_text', highlight_text)
+
+				highlighter.stamp = 1
+				highlighter.highlight( highlight_text, 1 )
+
+			# print('Fixing word highlight', command_name, "...")
+			threading.Thread( target=delayedFix ).start()
 
 	def handleTimeout(self, view, stamp):
 		if self.stamp != stamp:
