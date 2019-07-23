@@ -186,37 +186,30 @@ class HighlightSettingsCommand(sublime_plugin.WindowCommand):
 		sublime.save_settings('HighlightWords.sublime-settings')
 
 
+def delayedFix():
+	time.sleep(0.1)
+	# print('delayedFix running...')
+
+	window = sublime.active_window()
+	view = window.active_view()
+
+	highlighter = HighlightWordsCommand( window )
+	highlighter.view = view
+	highlighter.view_text = view.substr( sublime.Region( 0, view.size() ) )
+
+	highlight_text = view.settings().get('highlight_text', '')
+	# print('highlight_text', highlight_text)
+
+	highlighter.stamp = 1
+	highlighter.highlight( highlight_text, 1 )
+
+
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
-
-	def on_post_window_command(self, window, command_name, args):
-		# print('HighlightKeywordsCommand', command_name)
-
-		if command_name in ("reload_current_view_refresh", "revert", "fix_revert"):
-
-			def delayedFix():
-				time.sleep(1)
-				# print('delayedFix running...')
-
-				window = sublime.active_window()
-				view = window.active_view()
-
-				highlighter = HighlightWordsCommand( window )
-				highlighter.view = view
-				highlighter.view_text = view.substr( sublime.Region( 0, view.size() ) )
-
-				highlight_text = view.settings().get('highlight_text', '')
-				# print('highlight_text', highlight_text)
-
-				highlighter.stamp = 1
-				highlighter.highlight( highlight_text, 1 )
-
-			# print('Fixing word highlight', command_name, "...")
-			threading.Thread( target=delayedFix ).start()
 
 	def handleTimeout(self, view, stamp):
 		if self.stamp != stamp:
 			return
-		self.highlightKws(view)
+		threading.Thread( target=delayedFix ).start()
 
 	def on_modified(self, view):
 		stamp = time.time()
@@ -227,21 +220,6 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
 		stamp = time.time()
 		self.stamp = stamp
 		sublime.set_timeout(functools.partial(self.handleTimeout, view, stamp), 500)
-
-	def highlightKws(self, view):
-		size = 0
-		word_set = set()
-		for pair in KEYWORD_MAP:
-			word = pair['keyword']
-			color = pair['color']
-			flag = pair.get('flag', sublime.LITERAL)
-			if (word and color):
-				if word in word_set:
-					continue
-				word_set.add(word)
-				regions = view.find_all(word, flag)
-				view.add_regions('highlight_keyword_%d' % size, regions, color, '', sublime.HIDE_ON_MINIMAP)
-				size += 1
 
 def get_settings():
 	global USE_REGEX, IGNORE_CASE, WHOLE_WORD, SCOPES, KEYWORD_MAP
