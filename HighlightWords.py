@@ -82,8 +82,8 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 
 		word_list = self.get_words(highlight_text, skip_search=True)
 		for region in view.sel():
-			# region = region.empty() and view.word(region) or region
-			if region.empty(): continue
+			region = region.empty() and view.word(region) or region
+			# if region.empty(): continue
 			cursor_word = view.substr(region).strip()
 			if USE_REGEX:
 				# ST uses perl regular expression syntax, escape all special characters
