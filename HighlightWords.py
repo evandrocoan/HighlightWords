@@ -52,10 +52,10 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 							regex = regex.strip('/')
 
 							# print('regex', regex)
-							new = re.findall(regex, self.view_text)
+							new = list( re.finditer(regex, self.view_text) )
 
-							# print('new', new)
-							if new: filtered_words.extend( new )
+							# print('new', [ item.groups() for item in new ] )
+							if new: filtered_words.append( new )
 
 					elif token.type == 'WORDS':
 						unfiltered_words.append(token)
@@ -131,18 +131,53 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		regions = []
 		size = 0
 		flag = 0
+		color_switch = 0
+
 		if not USE_REGEX:
 			flag |= sublime.LITERAL
 		if IGNORE_CASE:
 			flag |= sublime.IGNORECASE
+
 		word_set = set()
 		for word in words:
-			if len(word) < 2 or word in word_set:
-				continue
-			word_set.add(word)
-			regions = view.find_all(word, flag)
-			view.add_regions('highlight_word_%d' % size, regions,  SCOPES[size % len(SCOPES)] , '', sublime.HIDE_ON_MINIMAP)
-			size += 1
+			if isinstance( word, list ):
+				for regexmatch in word:
+					regions = []
+
+					# print('color_switch', color_switch, )
+					try:
+						for index in range(1, 100):
+							region = regexmatch.span( index )
+							if region[0] == -1 and region[1] == -1:
+								continue
+							regions.append( sublime.Region( region[0], region[1] ) )
+					except IndexError:
+						pass
+
+					view.add_regions(
+							'highlight_word_%d' % size,
+							regions,
+							SCOPES[color_switch % len(SCOPES)] ,
+							'',
+							sublime.HIDE_ON_MINIMAP
+						)
+					size += 1
+					color_switch += 1
+			else:
+				if len(word) < 2: continue
+				if word in word_set: continue
+				word_set.add(word)
+
+				regions = view.find_all(word, flag)
+				view.add_regions(
+						'highlight_word_%d' % size,
+						regions,
+						SCOPES[color_switch % len(SCOPES)] ,
+						'',
+						sublime.HIDE_ON_MINIMAP
+					)
+				size += 1
+				color_switch += 1
 
 		view.settings().set('highlight_size', size)
 		view.settings().set('highlight_text', text)
