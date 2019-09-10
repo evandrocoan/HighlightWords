@@ -230,12 +230,31 @@ class HighlightSettingsCommand(sublime_plugin.WindowCommand):
 		sublime.save_settings('HighlightWords.sublime-settings')
 
 
+def highlightGlobalKeywords(view):
+	""" See the setting `permanent_highlight_keyword_color_mappings` """
+	size = 0
+	word_set = set()
+	for pair in KEYWORD_MAP:
+		word = pair['keyword']
+		color = pair['color']
+		flag = pair.get('flag', sublime.LITERAL)
+		if (word and color):
+			if word in word_set:
+				continue
+			word_set.add(word)
+			regions = view.find_all(word, flag)
+			view.add_regions('highlight_keyword_%d' % size, regions, color, '', sublime.HIDE_ON_MINIMAP)
+			size += 1
+
+
 def delayedFix():
 	time.sleep(0.1)
-	# print('delayedFix running...')
 
 	window = sublime.active_window()
 	view = window.active_view()
+
+	# print('delayedFix running...')
+	highlightGlobalKeywords( view )
 
 	highlighter = HighlightWordsCommand( window )
 	highlighter.view = view
@@ -264,6 +283,7 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
 		stamp = time.time()
 		self.stamp = stamp
 		sublime.set_timeout(functools.partial(self.handleTimeout, view, stamp), 500)
+
 
 def get_settings():
 	global USE_REGEX
