@@ -15,6 +15,8 @@ ST3 = False if sys.version_info < (3, 0) else True
 USE_REGEX = False
 IGNORE_CASE = False
 WHOLE_WORD = False # only effective when USE_REGEX is True
+UNDER_THE_CURSOR = True
+CLEAR_ON_ESCAPE = False
 KEYWORD_MAP = []
 
 
@@ -82,8 +84,13 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 
 		word_list = self.get_words(highlight_text, skip_search=True)
 		for region in view.sel():
-			region = region.empty() and view.word(region) or region
-			# if region.empty(): continue
+
+			if UNDER_THE_CURSOR:
+				region = region.empty() and view.word(region) or region
+
+			else:
+				if region.empty(): continue
+
 			cursor_word = view.substr(region).strip()
 			if USE_REGEX:
 				# ST uses perl regular expression syntax, escape all special characters
@@ -186,7 +193,9 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 	def on_cancel(self):
 		self.window.run_command('unhighlight_words')
 		view = self.window.active_view()
-		# view.settings().erase('highlight_text')
+
+		if CLEAR_ON_ESCAPE:
+			view.settings().erase('highlight_text')
 
 class UnhighlightWordsCommand(sublime_plugin.WindowCommand):
 	def run(self):
@@ -257,11 +266,20 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
 		sublime.set_timeout(functools.partial(self.handleTimeout, view, stamp), 500)
 
 def get_settings():
-	global USE_REGEX, IGNORE_CASE, WHOLE_WORD, SCOPES, KEYWORD_MAP
+	global USE_REGEX
+	global IGNORE_CASE
+	global WHOLE_WORD
+	global UNDER_THE_CURSOR
+	global CLEAR_ON_ESCAPE
+	global SCOPES
+	global KEYWORD_MAP
+
 	setting = sublime.load_settings('HighlightWords.sublime-settings')
 	USE_REGEX = setting.get('use_regex', False)
 	IGNORE_CASE = setting.get('ignore_case', False)
 	WHOLE_WORD = setting.get('whole_word', False)
+	UNDER_THE_CURSOR = setting.get('under_the_cursor', True)
+	CLEAR_ON_ESCAPE = setting.get('clear_on_escape', False)
 	SCOPES = setting.get('colors_by_scope', SCOPES)
 	KEYWORD_MAP = setting.get('permanent_highlight_keyword_color_mappings', [])
 	return setting

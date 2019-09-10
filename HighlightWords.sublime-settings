@@ -29,6 +29,12 @@
 	"use_regex": true,
 	"ignore_case": true,
 
+	// Whether or not to add the word under the cursor into the find highlighted panel when opening it
+	"under_the_cursor": true,
+
+	// Whether or not to clean the highlight when closing the find highlighted input panel with escape
+	"clear_on_escape": true,
+
 	// Keywords to be always highlighted, clear the list to disable it.
 	// "keyword" are literally matched, and "color" refers to theme scope names.
 	// "flag": 0 - regex, 1 - literal (default), 2 - regex and ignore case, 3 - literal and ignore case
