@@ -279,11 +279,6 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
 		self.stamp = stamp
 		sublime.set_timeout(functools.partial(self.handleTimeout, view, stamp), 500)
 
-	def on_activated(self, view):
-		stamp = time.time()
-		self.stamp = stamp
-		sublime.set_timeout(functools.partial(self.handleTimeout, view, stamp), 500)
-
 
 def get_settings():
 	global USE_REGEX
