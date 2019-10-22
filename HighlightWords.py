@@ -130,7 +130,6 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		if self.stamp != stamp:
 			return
 
-		self.window.run_command('unhighlight_words')
 		view = self.window.active_view()
 		words = self.get_words(text)
 		# print('highlight words', words)
@@ -186,6 +185,13 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 				size += 1
 				color_switch += 1
 
+		highlight_size = view.settings().get('highlight_size', 0)
+
+		# trim extra/unrequired regions
+		if size < highlight_size:
+			for index in range(size, highlight_size):
+				view.erase_regions('highlight_word_%d' % index)
+
 		view.settings().set('highlight_size', size)
 		view.settings().set('highlight_text', text)
 		# print('highlight end')
@@ -202,9 +208,9 @@ class UnhighlightWordsCommand(sublime_plugin.WindowCommand):
 		view = self.window.active_view()
 		if not view:
 			return
-		size = view.settings().get('highlight_size', 0)
-		for i in range(size):
-			view.erase_regions('highlight_word_%d' % i)
+		highlight_size = view.settings().get('highlight_size', 0)
+		for index in range(highlight_size):
+			view.erase_regions('highlight_word_%d' % index)
 		view.settings().set('highlight_size', 0)
 
 class HighlightSettingsCommand(sublime_plugin.WindowCommand):
