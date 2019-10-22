@@ -248,26 +248,16 @@ class SelectNextHighlightedWordCommand(sublime_plugin.TextCommand):
 		if state.last_selected_region >= len( state.added_regions ):
 			state.last_selected_region = 0
 
-		target_region = state.added_regions[state.last_selected_region]
-		target_region = sublime.Region( target_region[0], target_region[1] )
-
-		view.add_regions(
-				'highlight_word_active_selection',
-				[target_region],
-				ACTIVE_SELECTION_WORD,
-				'',
-				sublime.DRAW_NO_FILL
-				| sublime.DRAW_SQUIGGLY_UNDERLINE
-			)
-
-		# print('Showing', target_region)
-		view.show( target_region )
+		target_points = state.added_regions[state.last_selected_region]
+		show_regions( view, target_points )
 
 
 class SelectPreviousHighlightedWordCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		view = self.view
 		view.erase_regions( 'highlight_word_active_selection' )
+		view.erase_regions( 'highlight_word_active_selection_a' )
+		view.erase_regions( 'highlight_word_active_selection_b' )
 		state = State(view)
 
 		# print("highlight_size", highlight_size)
@@ -279,20 +269,42 @@ class SelectPreviousHighlightedWordCommand(sublime_plugin.TextCommand):
 		if state.last_selected_region < 0 :
 			state.last_selected_region = len( state.added_regions ) - 1
 
-		target_region = state.added_regions[state.last_selected_region]
-		target_region = sublime.Region( target_region[0], target_region[1] )
+		target_points = state.added_regions[state.last_selected_region]
+		show_regions( view, target_points )
 
-		view.add_regions(
-				'highlight_word_active_selection',
-				[target_region],
-				ACTIVE_SELECTION_WORD,
-				'',
-				sublime.DRAW_NO_FILL
-				| sublime.DRAW_SQUIGGLY_UNDERLINE
-			)
 
-		# print('Showing', target_region)
-		view.show( target_region )
+def show_regions(view, target_points):
+	target_region = sublime.Region( target_points[0], target_points[1] )
+
+	border_region_a = sublime.Region( target_points[0] - 1, target_points[0] )
+	border_region_b = sublime.Region( target_points[1], target_points[1] + 1 )
+
+	view.add_regions(
+			'highlight_word_active_selection',
+			[target_region],
+			ACTIVE_SELECTION_WORD,
+			'',
+			sublime.DRAW_NO_FILL
+		)
+
+	view.add_regions(
+			'highlight_word_active_selection_a',
+			[border_region_a],
+			ACTIVE_SELECTION_WORD,
+			'',
+			0
+		)
+
+	view.add_regions(
+			'highlight_word_active_selection_b',
+			[border_region_b],
+			ACTIVE_SELECTION_WORD,
+			'',
+			0
+		)
+
+	# print('Showing', target_region)
+	view.show( target_region )
 
 
 class UnhighlightWordsCommand(sublime_plugin.WindowCommand):
