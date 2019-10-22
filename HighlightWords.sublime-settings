@@ -28,6 +28,7 @@
 	"whole_word": true,
 	"use_regex": true,
 	"ignore_case": true,
+	"active_selection_word": "comment",
 
 	// Whether or not to add the word under the cursor into the find highlighted panel when opening it
 	"under_the_cursor": true,
