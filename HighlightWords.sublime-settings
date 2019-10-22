@@ -28,7 +28,7 @@
 	"whole_word": true,
 	"use_regex": true,
 	"ignore_case": true,
-	"active_selection_word": "comment",
+	"active_selection_word": "function.call",
 
 	// Whether or not to add the word under the cursor into the find highlighted panel when opening it
 	"under_the_cursor": true,

@@ -256,7 +256,8 @@ class SelectNextHighlightedWordCommand(sublime_plugin.TextCommand):
 				[target_region],
 				ACTIVE_SELECTION_WORD,
 				'',
-				sublime.HIDE_ON_MINIMAP
+				sublime.DRAW_NO_FILL
+				| sublime.DRAW_SQUIGGLY_UNDERLINE
 			)
 
 		# print('Showing', target_region)
@@ -286,7 +287,8 @@ class SelectPreviousHighlightedWordCommand(sublime_plugin.TextCommand):
 				[target_region],
 				ACTIVE_SELECTION_WORD,
 				'',
-				sublime.HIDE_ON_MINIMAP
+				sublime.DRAW_NO_FILL
+				| sublime.DRAW_SQUIGGLY_UNDERLINE
 			)
 
 		# print('Showing', target_region)
