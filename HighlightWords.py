@@ -34,29 +34,40 @@ SPACES: /[\t \f]+/
 """, start='start', parser='lalr', lexer='contextual' )
 
 g_view_selections = {}
+g_regionkey = "HighlightWords"
 
 class Data(object):
-	added_regions = []
-	last_selected_region = 0
+
+	def __init__(self, view):
+		self.view = view
+		self.added_regions = []
+		self.added_regions_set = []
+		self.last_selected_region = 0
+
+	def add_regions_set(self, regions_set):
+		self.added_regions = list( sorted( regions_set, key=lambda item: item[0] ) )
+
 
 def State(view):
 
 	if view.id() in g_view_selections:
-		return g_view_selections.get( view.id() )
+		return view, g_view_selections.get( view.id() )
 
 	else:
-		active_view = sublime.active_window().active_view()
-		return g_view_selections.setdefault( active_view.id(), Data() )
+		window = view.window() or sublime.active_window()
+		active_view = window.active_view()
+		return active_view, g_view_selections.setdefault( active_view.id(), Data( active_view ) )
 
 
 class HighlightWordsGarbageCollector(sublime_plugin.EventListener):
 
 	def on_pre_close(self, view):
 		if view.id() in g_view_selections:
+			view.run_command( 'unhighlight_words' )
 			del g_view_selections[view.id()]
 
 
-class HighlightWordsCommand(sublime_plugin.WindowCommand):
+class HighlightWordsCommand(sublime_plugin.TextCommand):
 	def get_words(self, text, skip_search=False):
 		if USE_REGEX:
 
@@ -96,11 +107,10 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		else:
 			return text.split()
 
-	def run(self):
-		view = self.window.active_view()
-		if not view:
-			return
-		self.view = view
+	def run(self, edit):
+		view = self.view
+		window = view.window() or sublime.active_window()
+
 		self.view_text = view.substr( sublime.Region( 0, view.size() ) )
 		highlight_text = view.settings().get('highlight_text', '')
 		# print('highlight_text', highlight_text)
@@ -137,10 +147,12 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		else:
 			prompt += 'Case Sensitive'
 		prompt += '):'
-		v = self.window.show_input_panel(prompt, display_list, None, self.on_change, self.on_cancel)
-		sel = v.sel()
+
+
+		prompt_view = window.show_input_panel(prompt, display_list, None, self.on_change, self.on_cancel)
+		sel = prompt_view.sel()
 		sel.clear()
-		sel.add(sublime.Region(0, v.size()))
+		sel.add(sublime.Region(0, prompt_view.size()))
 
 	def on_change(self, text):
 		stamp = time.time()
@@ -153,7 +165,7 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 		if self.stamp != stamp:
 			return
 
-		view = self.window.active_view()
+		view = self.view
 		words = self.get_words(text)
 		# print('highlight words', words)
 
@@ -186,7 +198,7 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 
 					added_regions.update( [ (region.begin(), region.end()) for region in regions] )
 					view.add_regions(
-							'highlight_word_%d' % size,
+							'%s%d' % ( g_regionkey, size ),
 							regions,
 							SCOPES[color_switch % len(SCOPES)] ,
 							'',
@@ -203,7 +215,7 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 				added_regions.update( [ (region.begin(), region.end()) for region in regions] )
 
 				view.add_regions(
-						'highlight_word_%d' % size,
+						'%s%d' % ( g_regionkey, size ),
 						regions,
 						SCOPES[color_switch % len(SCOPES)] ,
 						'',
@@ -212,32 +224,53 @@ class HighlightWordsCommand(sublime_plugin.WindowCommand):
 				size += 1
 				color_switch += 1
 
+		# trim extra/unrequired regions
 		highlight_size = view.settings().get('highlight_size', 0)
 
-		# trim extra/unrequired regions
 		if size < highlight_size:
 			for index in range(size, highlight_size):
-				view.erase_regions('highlight_word_%d' % index)
+				view.erase_regions('%s%d' % ( g_regionkey, index ) )
 
 		view.settings().set('highlight_size', size)
 		view.settings().set('highlight_text', text)
 
-		State(view).added_regions = list( sorted( added_regions, key=lambda item: item[0] ) )
+		state = g_view_selections.setdefault( view.id(), Data( view ) )
+		state.add_regions_set( added_regions )
+
+		if state.last_selected_region < len( state.added_regions ):
+			active_region = view.get_regions( '%s_active_selection' % g_regionkey )
+
+			if active_region:
+				region_borders = (active_region[0].begin(), active_region[0].end())
+
+				if region_borders not in added_regions:
+					erase_active_region( view )
+
+		else:
+			erase_active_region( view )
+
 		# print('highlight end')
 
 	def on_cancel(self):
-		self.window.run_command('unhighlight_words')
-		view = self.window.active_view()
+		view = self.view
+		view, state = State( view )
+		view.run_command('unhighlight_words')
 
 		if CLEAR_ON_ESCAPE:
 			view.settings().erase('highlight_text')
 
 
+def erase_active_region(view):
+	view.erase_regions( '%s_active_selection' % g_regionkey )
+	view.erase_regions( '%s_active_selection_a' % g_regionkey )
+	view.erase_regions( '%s_active_selection_b' % g_regionkey )
+
+
 class SelectNextHighlightedWordCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		view = self.view
-		view.erase_regions( 'highlight_word_active_selection' )
-		state = State(view)
+		view, state = State( view )
+		erase_active_region( view )
 
 		# print("highlight_size", highlight_size)
 		if len( state.added_regions ) < 1:
@@ -255,10 +288,8 @@ class SelectNextHighlightedWordCommand(sublime_plugin.TextCommand):
 class SelectPreviousHighlightedWordCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		view = self.view
-		view.erase_regions( 'highlight_word_active_selection' )
-		view.erase_regions( 'highlight_word_active_selection_a' )
-		view.erase_regions( 'highlight_word_active_selection_b' )
-		state = State(view)
+		view, state = State( view )
+		erase_active_region( view )
 
 		# print("highlight_size", highlight_size)
 		if len( state.added_regions ) < 1:
@@ -280,7 +311,7 @@ def show_regions(view, target_points):
 	border_region_b = sublime.Region( target_points[1], target_points[1] + 1 )
 
 	view.add_regions(
-			'highlight_word_active_selection',
+			'%s_active_selection' % g_regionkey,
 			[target_region],
 			ACTIVE_SELECTION_WORD,
 			'',
@@ -288,7 +319,7 @@ def show_regions(view, target_points):
 		)
 
 	view.add_regions(
-			'highlight_word_active_selection_a',
+			'%s_active_selection_a' % g_regionkey,
 			[border_region_a],
 			ACTIVE_SELECTION_WORD,
 			'',
@@ -296,7 +327,7 @@ def show_regions(view, target_points):
 		)
 
 	view.add_regions(
-			'highlight_word_active_selection_b',
+			'%s_active_selection_b' % g_regionkey,
 			[border_region_b],
 			ACTIVE_SELECTION_WORD,
 			'',
@@ -307,14 +338,16 @@ def show_regions(view, target_points):
 	view.show( target_region )
 
 
-class UnhighlightWordsCommand(sublime_plugin.WindowCommand):
-	def run(self):
-		view = self.window.active_view()
-		if not view:
-			return
+class UnhighlightWordsCommand(sublime_plugin.TextCommand):
+	def run(self, edit):
+		view = self.view
+		view, state = State( view )
+		erase_active_region( view )
+
 		highlight_size = view.settings().get('highlight_size', 0)
 		for index in range(highlight_size):
-			view.erase_regions('highlight_word_%d' % index)
+			view.erase_regions('%s_%d' % ( g_regionkey, index ) )
+
 		view.settings().set('highlight_size', 0)
 
 
