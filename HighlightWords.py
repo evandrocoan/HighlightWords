@@ -42,10 +42,81 @@ class Data(object):
 		self.view = view
 		self.added_regions = []
 		self.added_regions_set = []
-		self.last_selected_region = 0
+		self.last_caret_begin = 0
+		self.selected_region_index = 0
 
 	def add_regions_set(self, regions_set):
 		self.added_regions = list( sorted( regions_set, key=lambda item: item[0] ) )
+
+	def actual_caret_begin(self):
+		selections = self.view.sel()
+		target_position = 0
+
+		if len( selections ):
+			target_position = selections[0].begin()
+
+		return target_position
+
+	def _reset_counter(self, backwards):
+
+		if backwards:
+			self.selected_region_index = len( self.added_regions ) - 1
+
+		else:
+			self.selected_region_index = 0
+
+	@staticmethod
+	def _compare(backwards, first, second):
+
+		if backwards:
+			return first < second
+
+		return first >= second
+
+	def target_points(self, backwards=False):
+		increment_size = -1 if backwards else 1
+		actual_caret_begin = self.actual_caret_begin()
+		has_selection_changed = actual_caret_begin != self.last_caret_begin
+
+		if has_selection_changed:
+			has_reached_end = 0
+			has_incremented = False
+			has_decremented = False
+
+			while True:
+
+				try:
+					target_points = self.added_regions[self.selected_region_index]
+
+					if self._compare( backwards, target_points[0], actual_caret_begin ):
+						has_incremented = True
+						if has_decremented: break
+						self.selected_region_index -= increment_size
+
+					else:
+						has_decremented = True
+						if has_incremented: break
+						self.selected_region_index += increment_size
+
+				except IndexError:
+					has_reached_end += 1
+					self._reset_counter( backwards )
+
+				if has_reached_end > 1:
+					break
+
+		else:
+			self.selected_region_index += increment_size
+
+			try:
+				target_points = self.added_regions[self.selected_region_index]
+
+			except IndexError:
+				self._reset_counter( backwards )
+				target_points = self.added_regions[self.selected_region_index]
+
+		self.last_caret_begin = actual_caret_begin
+		return target_points
 
 
 def State(view):
@@ -237,7 +308,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		state = g_view_selections.setdefault( view.id(), Data( view ) )
 		state.add_regions_set( added_regions )
 
-		if state.last_selected_region < len( state.added_regions ):
+		if state.selected_region_index < len( state.added_regions ):
 			active_region = view.get_regions( '%s_active_selection' % g_regionkey )
 
 			if active_region:
@@ -273,16 +344,9 @@ class SelectNextHighlightedWordCommand(sublime_plugin.TextCommand):
 		erase_active_region( view )
 
 		# print("highlight_size", highlight_size)
-		if len( state.added_regions ) < 1:
-			return
-
-		state.last_selected_region += 1
-
-		if state.last_selected_region >= len( state.added_regions ):
-			state.last_selected_region = 0
-
-		target_points = state.added_regions[state.last_selected_region]
-		show_regions( view, target_points )
+		if state.added_regions:
+			target_points = state.target_points( backwards=False )
+			show_regions( view, target_points )
 
 
 class SelectPreviousHighlightedWordCommand(sublime_plugin.TextCommand):
@@ -292,16 +356,9 @@ class SelectPreviousHighlightedWordCommand(sublime_plugin.TextCommand):
 		erase_active_region( view )
 
 		# print("highlight_size", highlight_size)
-		if len( state.added_regions ) < 1:
-			return
-
-		state.last_selected_region -= 1
-
-		if state.last_selected_region < 0 :
-			state.last_selected_region = len( state.added_regions ) - 1
-
-		target_points = state.added_regions[state.last_selected_region]
-		show_regions( view, target_points )
+		if state.added_regions:
+			target_points = state.target_points( backwards=True )
+			show_regions( view, target_points )
 
 
 def show_regions(view, target_points):
