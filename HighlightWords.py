@@ -196,6 +196,9 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 				if region.empty(): continue
 
 			cursor_word = view.substr(region).strip()
+			# print('cursor_word', cursor_word)
+			if not cursor_word: continue
+
 			if USE_REGEX:
 				# ST uses perl regular expression syntax, escape all special characters
 				cursor_word = re.sub(r'([ \\.\[{}()\*+?|^$])', r'\\\1', cursor_word).replace('\t', '\\t').replace('\n', '\\n')
