@@ -139,6 +139,11 @@ class HighlightWordsGarbageCollector(sublime_plugin.EventListener):
 
 
 class HighlightWordsCommand(sublime_plugin.TextCommand):
+
+	def __init__(self, view):
+		self.view = view
+		self.skip_highlight_search = False
+
 	def get_words(self, text, skip_search=False):
 		if USE_REGEX:
 
@@ -187,6 +192,8 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		# print('highlight_text', highlight_text)
 
 		word_list = self.get_words(highlight_text, skip_search=True)
+		old_display_list = ' '.join(word_list)
+
 		for region in view.sel():
 
 			if UNDER_THE_CURSOR:
@@ -222,13 +229,18 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 			prompt += 'Case Sensitive'
 		prompt += '):'
 
+		prompt_view = window.show_input_panel( prompt, old_display_list, None, self.on_change, self.on_cancel )
+		self.skip_highlight_search = True
+		prompt_view.run_command( "highlight_words_clear_prompt_panel", { "display_list": display_list } )
+		self.skip_highlight_search = False
 
-		prompt_view = window.show_input_panel(prompt, display_list, None, self.on_change, self.on_cancel)
 		sel = prompt_view.sel()
 		sel.clear()
 		sel.add(sublime.Region(0, prompt_view.size()))
 
 	def on_change(self, text):
+		if self.skip_highlight_search: return
+
 		stamp = time.time()
 		self.stamp = stamp
 		sublime.set_timeout(lambda: self.highlight(text, stamp), 500)
@@ -332,6 +344,13 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 		if CLEAR_ON_ESCAPE:
 			view.settings().erase('highlight_text')
+
+
+class HighlightWordsClearPromptPanelCommand(sublime_plugin.TextCommand):
+	def run(self, edit, display_list):
+		view = self.view
+		view.erase( edit, sublime.Region( 0, view.size() ) )
+		view.insert( edit, 0, display_list )
 
 
 def erase_active_region(view):
