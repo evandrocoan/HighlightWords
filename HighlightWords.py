@@ -231,6 +231,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 		prompt_view = window.show_input_panel( prompt, old_display_list, None, self.on_change, self.on_cancel )
 		self.skip_highlight_search = True
+		prompt_view.settings().set("word_wrap", True)
 		prompt_view.run_command( "highlight_words_clear_prompt_panel", { "display_list": display_list } )
 		self.skip_highlight_search = False
 
