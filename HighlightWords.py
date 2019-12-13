@@ -253,7 +253,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 			return
 
 		view = self.view
-		words = self.get_words(text)
+		words = self.get_words( text, skip_search=False )
 		# print('highlight words', words)
 
 		size = 0
@@ -267,21 +267,33 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 		word_set = set()
 		added_regions = set()
+		searched_words = set()
 
 		for word in words:
 			if isinstance( word, list ):
 				for regexmatch in word:
+					words_to_search = []
 					regions = []
 
 					# print('color_switch', color_switch, )
 					try:
 						for index in range(1, 100):
-							region = regexmatch.span( index )
-							if region[0] == -1 and region[1] == -1:
+							match = regexmatch.group( index )
+							if match is None:
 								continue
-							regions.append( sublime.Region( region[0], region[1] ) )
+							words_to_search.append( match )
 					except IndexError:
 						pass
+
+					for search in words_to_search:
+
+						if search in searched_words:
+							continue
+
+						regions.extend( view.find_all(search, flag) )
+
+					# print( "regions", regions )
+					searched_words.update( words_to_search )
 
 					added_regions.update( [ (region.begin(), region.end()) for region in regions] )
 					view.add_regions(
