@@ -228,12 +228,14 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		else:
 			prompt += 'Case Sensitive'
 		prompt += '):'
-
 		prompt_view = window.show_input_panel( prompt, old_display_list, None, self.on_change, self.on_cancel )
+
 		self.skip_highlight_search = True
 		prompt_view.settings().set("word_wrap", True)
 		prompt_view.run_command( "highlight_words_clear_prompt_panel", { "display_list": display_list } )
+
 		self.skip_highlight_search = False
+		self.on_change(display_list)
 
 		sel = prompt_view.sel()
 		sel.clear()
@@ -316,7 +318,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 				view.add_regions(
 						'%s%d' % ( g_regionkey, size ),
 						regions,
-						SCOPES[color_switch % len(SCOPES)] ,
+						SCOPES[color_switch % len(SCOPES)],
 						'',
 						sublime.HIDE_ON_MINIMAP
 					)
