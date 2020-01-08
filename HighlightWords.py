@@ -40,10 +40,14 @@ class Data(object):
 
 	def __init__(self, view):
 		self.view = view
+		self.added_words = set()
 		self.added_regions = []
-		self.added_regions_set = []
 		self.last_caret_begin = 0
 		self.selected_region_index = 0
+
+	def erase(self):
+		self.added_words.clear()
+		self.added_regions.clear()
 
 	def add_regions_set(self, regions_set):
 		self.added_regions = list( sorted( regions_set, key=lambda item: item[0] ) )
@@ -267,9 +271,8 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		if IGNORE_CASE:
 			flag |= sublime.IGNORECASE
 
-		word_set = set()
 		added_regions = set()
-		searched_words = set()
+		state = g_view_selections.setdefault( view.id(), Data( view ) )
 
 		for word in words:
 			if isinstance( word, list ):
@@ -289,15 +292,15 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 					for search in words_to_search:
 
-						if search in searched_words:
+						if search in state.added_words:
 							continue
 
+						state.added_words.add( search )
 						regions.extend( view.find_all(search, flag) )
 
 					# print( "regions", regions )
-					searched_words.update( words_to_search )
-
 					added_regions.update( [ (region.begin(), region.end()) for region in regions] )
+
 					view.add_regions(
 							'%s%d' % ( g_regionkey, size ),
 							regions,
@@ -309,8 +312,8 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 					color_switch += 1
 			else:
 				if len(word) < 2: continue
-				if word in word_set: continue
-				word_set.add(word)
+				if word in state.added_words: continue
+				state.added_words.add( word )
 
 				regions = view.find_all(word, flag)
 				added_regions.update( [ (region.begin(), region.end()) for region in regions] )
@@ -332,11 +335,9 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 			for index in range(size, highlight_size):
 				view.erase_regions('%s%d' % ( g_regionkey, index ) )
 
+		state.add_regions_set( added_regions )
 		view.settings().set('highlight_size', size)
 		view.settings().set('highlight_text', text)
-
-		state = g_view_selections.setdefault( view.id(), Data( view ) )
-		state.add_regions_set( added_regions )
 
 		if state.selected_region_index < len( state.added_regions ):
 			active_region = view.get_regions( '%s_active_selection' % g_regionkey )
@@ -436,6 +437,8 @@ class UnhighlightWordsCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		view = self.view
 		view, state = State( view )
+
+		state.erase()
 		erase_active_region( view )
 
 		highlight_size = view.settings().get('highlight_size', 0)
