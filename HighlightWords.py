@@ -142,6 +142,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 	def __init__(self, view):
 		self.view = view
+		self.disable_on_change = False
 		self.skip_highlight_search = False
 
 	def get_words(self, text, skip_search=False):
@@ -227,8 +228,13 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 			prompt += 'Ignore Case'
 		else:
 			prompt += 'Case Sensitive'
+
+		def on_done(text):
+			self.disable_on_change = False
+			self.on_change(text, force=True)
+
 		prompt += '):'
-		prompt_view = window.show_input_panel( prompt, old_display_list, None, self.on_change, self.on_cancel )
+		prompt_view = window.show_input_panel( prompt, old_display_list, on_done, self.on_change, self.on_cancel )
 
 		self.skip_highlight_search = True
 		prompt_view.settings().set("word_wrap", True)
@@ -241,12 +247,18 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		sel.clear()
 		sel.add(sublime.Region(0, prompt_view.size()))
 
-	def on_change(self, text):
-		if self.skip_highlight_search: return
+	def on_change(self, text, force=False):
+		if self.skip_highlight_search or self.disable_on_change and not force: return
 
 		stamp = time.time()
 		self.stamp = stamp
-		sublime.set_timeout(lambda: self.highlight(text, stamp), 500)
+
+		def highlight():
+			self.highlight(text, stamp)
+			if time.time() - stamp > 1:
+				self.disable_on_change = True
+
+		sublime.set_timeout(highlight, 500)
 
 	def highlight(self, text, stamp):
 		# print('highlight text', text)
