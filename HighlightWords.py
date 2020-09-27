@@ -317,7 +317,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 					added_regions.update( [ (region.begin(), region.end()) for region in regions] )
 					view.add_regions(
-							'%s%d' % ( g_regionkey, size ),
+							'%s_%d' % ( g_regionkey, size ),
 							regions,
 							SCOPES[color_switch % len(SCOPES)] ,
 							'',
@@ -334,7 +334,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 				added_regions.update( [ (region.begin(), region.end()) for region in regions] )
 
 				view.add_regions(
-						'%s%d' % ( g_regionkey, size ),
+						'%s_%d' % ( g_regionkey, size ),
 						regions,
 						SCOPES[color_switch % len(SCOPES)],
 						'',
@@ -348,7 +348,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 		if size < highlight_size:
 			for index in range(size, highlight_size):
-				view.erase_regions('%s%d' % ( g_regionkey, index ) )
+				view.erase_regions('%s_%d' % ( g_regionkey, index ) )
 
 		view.settings().set('highlight_size', size)
 		view.settings().set('highlight_text', text)
