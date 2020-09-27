@@ -508,7 +508,8 @@ def delayedFix(self, stamp):
 		return
 
 	self.is_running = True
-	time.sleep(1.0)
+	time.sleep(1.1 + self.running_time * 2)
+	start_time = time.time()
 
 	window = sublime.active_window()
 	view = window.active_view()
@@ -529,11 +530,14 @@ def delayedFix(self, stamp):
 
 	highlighter.stamp = 1
 	highlighter.highlight( highlight_text, 1 )
+	end_time = time.time()
+	self.running_time = end_time - start_time
 	self.is_running = False
 
 
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
 	is_running = False
+	running_time = 0.1
 
 	def on_modified(self, view):
 		stamp = time.time()
