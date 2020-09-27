@@ -18,6 +18,7 @@ WHOLE_WORD = False # only effective when USE_REGEX is True
 UNDER_THE_CURSOR = True
 CLEAR_ON_ESCAPE = False
 FILE_SIZE_LIMIT = 4194304
+SETTINGS = {}
 KEYWORD_MAP = []
 
 
@@ -144,6 +145,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 	def __init__(self, view):
 		self.view = view
 		self.perwindow = False
+		self.perapplication = False
 		self.disable_on_change = False
 		self.skip_highlight_search = False
 
@@ -186,8 +188,9 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		else:
 			return text.split()
 
-	def run(self, edit, perwindow=False):
+	def run(self, edit, perwindow=False, perapplication=False):
 		self.perwindow = perwindow
+		self.perapplication = perapplication
 		view = self.view
 		window = view.window() or sublime.active_window()
 
@@ -195,15 +198,14 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		if size > FILE_SIZE_LIMIT:
 			size = FILE_SIZE_LIMIT
 
-		highlight_text = window.settings().get('highlight_text', '')
 		self.view_text = view.substr( sublime.Region( 0, size ) )
+		highlight_text = SETTINGS.get('highlight_text', '')
 
-		if not perwindow:
-			if highlight_text:
-				view_text = view.settings().get('highlight_text', '')
-				highlight_text += " %s" % view_text
-			else:
-				highlight_text = view.settings().get('highlight_text', '')
+		if not perapplication:
+			highlight_text = get_highlight_text( highlight_text, window.settings() )
+
+		if not perwindow and not perapplication:
+			highlight_text = get_highlight_text( highlight_text, view.settings() )
 
 		# print('highlight_text', highlight_text)
 		word_list = self.get_words(highlight_text, skip_search=True)
@@ -233,14 +235,22 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 			break
 
 		seen = set()
-		word_list_clean = []
+		words = []
 		for item in word_list:
 			if item not in seen:
 				seen.add(item)
-				word_list_clean.append(item)
+				words.append(item)
 
-		display_list = ' '.join(word_list_clean)
-		prompt = 'Highlight words '
+		display_list = ' '.join(words)
+		prompt = 'Highlight words for '
+
+		if perapplication:
+			prompt += "Global "
+		elif perwindow:
+			prompt += "Window "
+		else:
+			prompt += "View "
+
 		if USE_REGEX:
 			prompt += '(RegEx, '
 		else:
@@ -289,8 +299,17 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 			return
 
 		view = self.view
-		words = self.get_words( text, skip_search=False )
+		words_dirt = self.get_words( text, skip_search=False )
+
+		seen = set()
+		words = []
+		for item in words_dirt:
+			if item not in seen:
+				seen.add(item)
+				words.append(item)
+
 		# print('highlight words', words)
+		text = ' '.join(words)
 
 		size = 0
 		flag = 0
@@ -368,9 +387,15 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 		view.settings().set('highlight_size', size)
 
-		if self.perwindow:
+		if self.perapplication:
+			SETTINGS.set('highlight_text', text)
+			HighlightKeywordsCommand.instance.on_activated(view)
+			sublime.save_settings('HighlightWords.sublime-settings')
+
+		elif self.perwindow:
 			window = view.window() or sublime.active_window()
 			window.settings().set('highlight_text', text)
+			HighlightKeywordsCommand.instance.on_activated(view)
 		else:
 			view.settings().set('highlight_text', text)
 
@@ -529,7 +554,7 @@ def delayedFix(self, stamp):
 		return
 
 	self.is_running = True
-	time.sleep(1.1 + self.running_time * 2)
+	time.sleep(0.1 + self.running_time * 2)
 	start_time = time.time()
 
 	window = sublime.active_window()
@@ -542,18 +567,12 @@ def delayedFix(self, stamp):
 	if size > FILE_SIZE_LIMIT:
 		size = FILE_SIZE_LIMIT
 
-	highlighter = HighlightWordsCommand( window )
-	highlighter.view = view
+	highlighter = HighlightWordsCommand( view )
 	highlighter.view_text = view.substr( sublime.Region( 0, size ) )
 
-	highlight_text = window.settings().get('highlight_text', '')
-
-	if highlight_text:
-		view_text = view.settings().get('highlight_text', '')
-		highlight_text += " %s" % view_text
-	else:
-		highlight_text = view.settings().get('highlight_text', '')
-
+	highlight_text = SETTINGS.get('highlight_text', '')
+	highlight_text = get_highlight_text( highlight_text, window.settings() )
+	highlight_text = get_highlight_text( highlight_text, view.settings() )
 	# print('highlight_text', highlight_text)
 
 	highlighter.stamp = 1
@@ -563,9 +582,34 @@ def delayedFix(self, stamp):
 	self.is_running = False
 
 
+def get_highlight_text(highlight_text, settings):
+	if highlight_text:
+		view_text = settings.get('highlight_text', '')
+
+		if highlight_text.endswith(" "):
+			highlight_text += view_text
+		else:
+			highlight_text += " %s" % view_text
+	else:
+		highlight_text = settings.get('highlight_text', '')
+	return highlight_text
+
+
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
 	is_running = False
 	running_time = 0.1
+	instance = None
+
+	def __new__(cls):
+	    if cls.instance is None:
+	        cls.instance = super(HighlightKeywordsCommand, cls).__new__(cls)
+	        cls.instance.__initialized = False
+	    return cls.instance
+
+	def __init__(self):
+	    if(self.__initialized):
+	    	return
+	    self.__initialized = True
 
 	def on_activated(self, view):
 		self.on_modified(view)
@@ -577,6 +621,7 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
 
 
 def get_settings():
+	global SETTINGS
 	global USE_REGEX
 	global IGNORE_CASE
 	global WHOLE_WORD
@@ -587,17 +632,17 @@ def get_settings():
 	global KEYWORD_MAP
 	global ACTIVE_SELECTION_WORD
 
-	setting = sublime.load_settings('HighlightWords.sublime-settings')
-	USE_REGEX = setting.get('use_regex', False)
-	IGNORE_CASE = setting.get('ignore_case', False)
-	WHOLE_WORD = setting.get('whole_word', False)
-	UNDER_THE_CURSOR = setting.get('under_the_cursor', True)
-	CLEAR_ON_ESCAPE = setting.get('clear_on_escape', False)
-	FILE_SIZE_LIMIT = setting.get('file_size_limit', 4194304)
-	SCOPES = setting.get('colors_by_scope', SCOPES)
-	KEYWORD_MAP = setting.get('permanent_highlight_keyword_color_mappings', [])
-	ACTIVE_SELECTION_WORD = setting.get('active_selection_word', "comment")
-	return setting
+	SETTINGS = sublime.load_settings('HighlightWords.sublime-settings')
+	USE_REGEX = SETTINGS.get('use_regex', False)
+	IGNORE_CASE = SETTINGS.get('ignore_case', False)
+	WHOLE_WORD = SETTINGS.get('whole_word', False)
+	UNDER_THE_CURSOR = SETTINGS.get('under_the_cursor', True)
+	CLEAR_ON_ESCAPE = SETTINGS.get('clear_on_escape', False)
+	FILE_SIZE_LIMIT = SETTINGS.get('file_size_limit', 4194304)
+	SCOPES = SETTINGS.get('colors_by_scope', SCOPES)
+	KEYWORD_MAP = SETTINGS.get('permanent_highlight_keyword_color_mappings', [])
+	ACTIVE_SELECTION_WORD = SETTINGS.get('active_selection_word', "comment")
+	return SETTINGS
 
 def plugin_loaded():
 	get_settings().add_on_change(g_regionkey, get_settings)
