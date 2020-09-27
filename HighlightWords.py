@@ -146,6 +146,8 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
         self.view = view
         self.perwindow = False
         self.perapplication = False
+        self.highlight_text_window = None
+
         self.disable_on_change = False
         self.skip_highlight_search = False
 
@@ -199,16 +201,18 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
             size = FILE_SIZE_LIMIT
 
         self.view_text = view.substr( sublime.Region( 0, size ) )
-        highlight_text = SETTINGS.get('highlight_text', '')
+        self.highlight_text_window = None
+        highlight_text_all = SETTINGS.get('highlight_text', '')
 
         if not perapplication:
-            highlight_text = get_highlight_text( highlight_text, window.settings() )
+            highlight_text_all = get_highlight_text( highlight_text_all, window.settings() )
+            self.highlight_text_window = highlight_text_all
 
         if not perwindow and not perapplication:
-            highlight_text = get_highlight_text( highlight_text, view.settings() )
+            highlight_text_all = get_highlight_text( highlight_text_all, view.settings() )
 
-        # print('highlight_text', highlight_text)
-        word_list = self.get_words(highlight_text, skip_search=True)
+        # print('highlight_text', highlight_text_all)
+        word_list = self.get_words(highlight_text_all, skip_search=True)
         old_display_list = ' '.join(word_list)
 
         for region in view.sel():
@@ -262,6 +266,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
         def on_done(text):
             self.disable_on_change = False
+            self.skip_highlight_search = False
             self.on_change(text, force=True)
 
         prompt += '):'
@@ -397,6 +402,13 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
             window.settings().set('highlight_text', text)
             HighlightKeywordsCommand.instance.on_activated(view)
         else:
+            if self.highlight_text_window:
+                all_words = self.get_words(text, skip_search=True)
+                window_words = self.get_words(self.highlight_text_window, skip_search=True)
+                window_words = set(window_words)
+                text = " ".join(item for item in all_words if item not in window_words)
+
+            # print( "Setting highlight_text", text )
             view.settings().set('highlight_text', text)
 
         state = g_view_selections.setdefault( view.id(), Data( view ) )
@@ -570,13 +582,15 @@ def delayedFix(self, stamp):
     highlighter = HighlightWordsCommand( view )
     highlighter.view_text = view.substr( sublime.Region( 0, size ) )
 
-    highlight_text = SETTINGS.get('highlight_text', '')
-    highlight_text = get_highlight_text( highlight_text, window.settings() )
-    highlight_text = get_highlight_text( highlight_text, view.settings() )
-    # print('highlight_text', highlight_text)
+    highlight_text_all = SETTINGS.get('highlight_text', '')
+    highlight_text_all = get_highlight_text( highlight_text_all, window.settings() )
+
+    highlighter.highlight_text_window = highlight_text_all
+    highlight_text_all = get_highlight_text( highlight_text_all, view.settings() )
+    # print('highlight_text', highlight_text_all)
 
     highlighter.stamp = 1
-    highlighter.highlight( highlight_text, 1 )
+    highlighter.highlight( highlight_text_all, 1 )
     end_time = time.time()
     self.running_time = end_time - start_time
     self.is_running = False
