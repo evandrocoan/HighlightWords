@@ -259,11 +259,12 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		self.stamp = stamp
 
 		def highlight():
+			time.sleep(0.5)
 			self.highlight(text, stamp)
 			if time.time() - stamp > 1:
 				self.disable_on_change = True
 
-		sublime.set_timeout(highlight, 500)
+		threading.Thread( target=highlight ).start()
 
 	def highlight(self, text, stamp):
 		# print('highlight text', text)
