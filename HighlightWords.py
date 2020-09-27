@@ -143,6 +143,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 
 	def __init__(self, view):
 		self.view = view
+		self.perwindow = False
 		self.disable_on_change = False
 		self.skip_highlight_search = False
 
@@ -185,7 +186,8 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		else:
 			return text.split()
 
-	def run(self, edit):
+	def run(self, edit, perwindow=False):
+		self.perwindow = perwindow
 		view = self.view
 		window = view.window() or sublime.active_window()
 
@@ -193,10 +195,17 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		if size > FILE_SIZE_LIMIT:
 			size = FILE_SIZE_LIMIT
 
+		highlight_text = window.settings().get('highlight_text', '')
 		self.view_text = view.substr( sublime.Region( 0, size ) )
-		highlight_text = view.settings().get('highlight_text', '')
-		# print('highlight_text', highlight_text)
 
+		if not perwindow:
+			if highlight_text:
+				view_text = view.settings().get('highlight_text', '')
+				highlight_text += " %s" % view_text
+			else:
+				highlight_text = view.settings().get('highlight_text', '')
+
+		# print('highlight_text', highlight_text)
 		word_list = self.get_words(highlight_text, skip_search=True)
 		old_display_list = ' '.join(word_list)
 
@@ -223,7 +232,14 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 				word_list.append(cursor_word)
 			break
 
-		display_list = ' '.join(word_list)
+		seen = set()
+		word_list_clean = []
+		for item in word_list:
+			if item not in seen:
+				seen.add(item)
+				word_list_clean.append(item)
+
+		display_list = ' '.join(word_list_clean)
 		prompt = 'Highlight words '
 		if USE_REGEX:
 			prompt += '(RegEx, '
@@ -351,7 +367,12 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 				view.erase_regions('%s_%d' % ( g_regionkey, index ) )
 
 		view.settings().set('highlight_size', size)
-		view.settings().set('highlight_text', text)
+
+		if self.perwindow:
+			window = view.window() or sublime.active_window()
+			window.settings().set('highlight_text', text)
+		else:
+			view.settings().set('highlight_text', text)
 
 		state = g_view_selections.setdefault( view.id(), Data( view ) )
 		state.add_regions_set( added_regions )
@@ -525,7 +546,14 @@ def delayedFix(self, stamp):
 	highlighter.view = view
 	highlighter.view_text = view.substr( sublime.Region( 0, size ) )
 
-	highlight_text = view.settings().get('highlight_text', '')
+	highlight_text = window.settings().get('highlight_text', '')
+
+	if highlight_text:
+		view_text = view.settings().get('highlight_text', '')
+		highlight_text += " %s" % view_text
+	else:
+		highlight_text = view.settings().get('highlight_text', '')
+
 	# print('highlight_text', highlight_text)
 
 	highlighter.stamp = 1
