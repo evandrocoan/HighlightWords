@@ -539,6 +539,9 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
 	is_running = False
 	running_time = 0.1
 
+	def on_activated(self, view):
+		self.on_modified(view)
+
 	def on_modified(self, view):
 		stamp = time.time()
 		self.stamp = stamp
