@@ -569,10 +569,10 @@ def get_settings():
 	return setting
 
 def plugin_loaded():
-	get_settings().add_on_change('HighlightWords', get_settings)
+	get_settings().add_on_change(g_regionkey, get_settings)
 
 def plugin_unloaded():
-	get_settings().clear_on_change('HighlightWords')
+	get_settings().clear_on_change(g_regionkey)
 
 if not ST3:
 	plugin_loaded()
