@@ -17,6 +17,7 @@ IGNORE_CASE = False
 WHOLE_WORD = False # only effective when USE_REGEX is True
 UNDER_THE_CURSOR = True
 CLEAR_ON_ESCAPE = False
+FILE_SIZE_LIMIT = 4194304
 KEYWORD_MAP = []
 
 
@@ -188,7 +189,11 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
 		view = self.view
 		window = view.window() or sublime.active_window()
 
-		self.view_text = view.substr( sublime.Region( 0, view.size() ) )
+		size = view.size()
+		if size > FILE_SIZE_LIMIT:
+			size = FILE_SIZE_LIMIT
+
+		self.view_text = view.substr( sublime.Region( 0, size ) )
 		highlight_text = view.settings().get('highlight_text', '')
 		# print('highlight_text', highlight_text)
 
@@ -497,8 +502,12 @@ def highlightGlobalKeywords(view):
 			size += 1
 
 
-def delayedFix():
-	time.sleep(0.1)
+def delayedFix(self, stamp):
+	if self.stamp != stamp or self.is_running:
+		return
+
+	self.is_running = True
+	time.sleep(1.0)
 
 	window = sublime.active_window()
 	view = window.active_view()
@@ -506,28 +515,29 @@ def delayedFix():
 	# print('delayedFix running...')
 	highlightGlobalKeywords( view )
 
+	size = view.size()
+	if size > FILE_SIZE_LIMIT:
+		size = FILE_SIZE_LIMIT
+
 	highlighter = HighlightWordsCommand( window )
 	highlighter.view = view
-	highlighter.view_text = view.substr( sublime.Region( 0, view.size() ) )
+	highlighter.view_text = view.substr( sublime.Region( 0, size ) )
 
 	highlight_text = view.settings().get('highlight_text', '')
 	# print('highlight_text', highlight_text)
 
 	highlighter.stamp = 1
 	highlighter.highlight( highlight_text, 1 )
+	self.is_running = False
 
 
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
-
-	def handleTimeout(self, view, stamp):
-		if self.stamp != stamp:
-			return
-		threading.Thread( target=delayedFix ).start()
+	is_running = False
 
 	def on_modified(self, view):
 		stamp = time.time()
 		self.stamp = stamp
-		sublime.set_timeout(functools.partial(self.handleTimeout, view, stamp), 500)
+		threading.Thread( target=delayedFix, args=(self, stamp) ).start()
 
 
 def get_settings():
@@ -536,6 +546,7 @@ def get_settings():
 	global WHOLE_WORD
 	global UNDER_THE_CURSOR
 	global CLEAR_ON_ESCAPE
+	global FILE_SIZE_LIMIT
 	global SCOPES
 	global KEYWORD_MAP
 	global ACTIVE_SELECTION_WORD
@@ -546,6 +557,7 @@ def get_settings():
 	WHOLE_WORD = setting.get('whole_word', False)
 	UNDER_THE_CURSOR = setting.get('under_the_cursor', True)
 	CLEAR_ON_ESCAPE = setting.get('clear_on_escape', False)
+	FILE_SIZE_LIMIT = setting.get('file_size_limit', 4194304)
 	SCOPES = setting.get('colors_by_scope', SCOPES)
 	KEYWORD_MAP = setting.get('permanent_highlight_keyword_color_mappings', [])
 	ACTIVE_SELECTION_WORD = setting.get('active_selection_word', "comment")
