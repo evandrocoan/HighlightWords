@@ -582,17 +582,17 @@ def delayedFix(self, stamp):
     self.is_running = False
 
 
-def get_highlight_text(highlight_text, settings):
-    if highlight_text:
+def get_highlight_text(all_text, settings):
+    if all_text:
         view_text = settings.get('highlight_text', '')
 
-        if highlight_text.endswith(" "):
-            highlight_text += view_text
+        if all_text.endswith(" "):
+            all_text += view_text
         else:
-            highlight_text += " %s" % view_text
+            all_text += " %s" % view_text
     else:
-        highlight_text = settings.get('highlight_text', '')
-    return highlight_text
+        all_text = settings.get('highlight_text', '')
+    return all_text
 
 
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
