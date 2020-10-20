@@ -386,7 +386,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
         # trim extra/unrequired regions
         highlight_size = view.settings().get('highlight_size', 0)
 
-        if size < highlight_size:
+        if highlight_size and size < highlight_size:
             for index in range(size, highlight_size):
                 view.erase_regions('%s_%d' % ( g_regionkey, index ) )
 
