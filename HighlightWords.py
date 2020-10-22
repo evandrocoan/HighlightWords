@@ -300,7 +300,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
     def highlight(self, text, stamp):
         # print('highlight text', text)
         # print('highlight stamp', stamp)
-        if self.stamp != stamp:
+        if self.stamp != stamp or not text:
             return
 
         view = self.view
@@ -562,38 +562,41 @@ def highlightGlobalKeywords(view):
 
 
 def delayedFix(self, stamp):
+    # print( 'self.is_running %s. %s , self.stamp %s/%s' % ( self.is_running, self.stamp != stamp, self.stamp, stamp) )
     if self.stamp != stamp or self.is_running:
         return
 
-    self.is_running = True
-    time.sleep(0.1 + self.running_time * 2)
-    start_time = time.time()
+    try:
+        self.is_running = True
+        time.sleep(0.1 + self.running_time * 2)
+        start_time = time.time()
 
-    window = sublime.active_window()
-    view = window.active_view()
+        window = sublime.active_window()
+        view = window.active_view()
 
-    # print('delayedFix running...')
-    highlightGlobalKeywords( view )
+        # print('delayedFix running...')
+        highlightGlobalKeywords( view )
 
-    size = view.size()
-    if size > FILE_SIZE_LIMIT:
-        size = FILE_SIZE_LIMIT
+        size = view.size()
+        if size > FILE_SIZE_LIMIT:
+            size = FILE_SIZE_LIMIT
 
-    highlighter = HighlightWordsCommand( view )
-    highlighter.view_text = view.substr( sublime.Region( 0, size ) )
+        highlighter = HighlightWordsCommand( view )
+        highlighter.view_text = view.substr( sublime.Region( 0, size ) )
 
-    highlight_text_all = SETTINGS.get('highlight_text', '')
-    highlight_text_all = get_highlight_text( highlight_text_all, window.settings() )
+        highlight_text_all = SETTINGS.get('highlight_text', '')
+        highlight_text_all = get_highlight_text( highlight_text_all, window.settings() )
 
-    highlighter.highlight_text_window = highlight_text_all
-    highlight_text_all = get_highlight_text( highlight_text_all, view.settings() )
-    # print('highlight_text', highlight_text_all)
+        highlighter.highlight_text_window = highlight_text_all
+        highlight_text_all = get_highlight_text( highlight_text_all, view.settings() )
+        # print('highlight_text', highlight_text_all)
 
-    highlighter.stamp = 1
-    highlighter.highlight( highlight_text_all, 1 )
-    end_time = time.time()
-    self.running_time = end_time - start_time
-    self.is_running = False
+        highlighter.stamp = 1
+        highlighter.highlight( highlight_text_all, 1 )
+        end_time = time.time()
+        self.running_time = end_time - start_time
+    finally:
+        self.is_running = False
 
 
 def get_highlight_text(all_text, settings):
@@ -606,7 +609,7 @@ def get_highlight_text(all_text, settings):
             all_text += " %s" % view_text
     else:
         all_text = settings.get('highlight_text', '')
-    return all_text
+    return all_text or ""
 
 
 class HighlightKeywordsCommand(sublime_plugin.EventListener):
