@@ -300,7 +300,11 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
     def highlight(self, text, stamp):
         # print('highlight text', text)
         # print('highlight stamp', stamp)
-        if self.stamp != stamp or not text:
+        if self.stamp != stamp:
+            return
+
+        if not isinstance(text, str):
+            print("Error: text is not string", text)
             return
 
         view = self.view
