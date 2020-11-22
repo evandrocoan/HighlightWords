@@ -1,5 +1,5 @@
 [
-    { "keys": ["ctrl+k", "ctrl+h"], "command": "highlight_words" },
+    { "keys": ["ctrl+k", "ctrl+h"], "command": "highlight_words", "args": {} },
     { "keys": ["ctrl+q", "ctrl+h"], "command": "highlight_words", "args": {"perwindow": true } },
     { "keys": ["ctrl+q", "ctrl+i"], "command": "highlight_words", "args": {"perapplication": true } },
 

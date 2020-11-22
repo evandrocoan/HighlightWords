@@ -1,8 +1,18 @@
 [
     {
-        "caption": "HighlightWords: Highlight Words",
+        "caption": "HighlightWords: Highlight Words (for View)",
         "command": "highlight_words",
         "args": {}
+    },
+    {
+        "caption": "HighlightWords: Highlight Words (for Window)",
+        "command": "highlight_words",
+        "args": {"perwindow": true }
+    },
+    {
+        "caption": "HighlightWords: Highlight Words (for Application)",
+        "command": "highlight_words",
+        "args": {"perapplication": true }
     },
     {
         "caption": "HighlightWords: Unhighlight Words",

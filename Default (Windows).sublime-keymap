@@ -1,6 +1,9 @@
 [
-    { "keys": ["ctrl+k", "ctrl+h"], "command": "highlight_words" },
-    // { "keys": ["ctrl+k", "ctrl+i"], "command": "unhighlight_words" },
+    { "keys": ["ctrl+k", "ctrl+h"], "command": "highlight_words", "args": {} },
+    { "keys": ["ctrl+q", "ctrl+h"], "command": "highlight_words", "args": {"perwindow": true } },
+    { "keys": ["ctrl+q", "ctrl+i"], "command": "highlight_words", "args": {"perapplication": true } },
+
+    { "keys": ["ctrl+q", "ctrl+o"], "command": "unhighlight_words" },
 
     { "keys": ["f1"], "command": "select_next_highlighted_word" },
     { "keys": ["shift+f1"], "command": "select_previous_highlighted_word" },
