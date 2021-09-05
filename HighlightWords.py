@@ -333,6 +333,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
         added_regions = set()
         searched_words = set()
 
+        # print('SCOPES', SCOPES)
         for word in words:
             if isinstance( word, list ):
                 for regexmatch in word:
@@ -377,6 +378,7 @@ class HighlightWordsCommand(sublime_plugin.TextCommand):
                 regions = view.find_all(word, flag)
                 added_regions.update( [ (region.begin(), region.end()) for region in regions] )
 
+                # print('SCOPES[color_switch % len(SCOPES)] ', color_switch % len(SCOPES), word, SCOPES[color_switch % len(SCOPES)], )
                 view.add_regions(
                         '%s_%d' % ( g_regionkey, size ),
                         regions,
