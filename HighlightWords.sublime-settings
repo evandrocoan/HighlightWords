@@ -25,6 +25,31 @@
 		"markup.list",
 		"sublimelinter.mark.warning",
 	],
+    // Monkay colors, change: "find_highlight": "var(grey)",
+    // "colors_by_scope": [
+    //     "constant.language", // AA2
+    //     "entity.name", // AA8
+    //     "entity.name.filename", // AA9
+    //     "entity.name.tag", // AA10
+    //     "markup.heading punctuation.definition.heading", // AA17
+    //     "markup.underline.link", // AA24
+    //     "invalid.deprecated", // AA14
+    //     "markup.quote", // AA22
+    //     "markup.list.unnumbered.bullet", // AA21
+    //     "meta.structure.dictionary.json string.quoted.double.json", // AA27
+    //     "invalid", // AA13
+    //     "markup.raw", // AA23
+    //     "message.error", // AA25
+    //     "meta.diff", // AA26
+    //     "punctuation.definition.thematic-break", // AA29
+    //     "constant.numeric.line-number.find-in-files", // AA3
+    //     "comment", // AA1
+    //     "diff.deleted", // AA4
+    //     "diff.deleted.char", // AA5
+    //     "diff.inserted", // AA6
+    //     "diff.inserted.char", // AA7
+    // ],
+
 	"whole_word": true,
 	"use_regex": true,
 	"ignore_case": true,
