@@ -28,7 +28,7 @@
     // Monkay colors, change: "find_highlight": "var(grey)",
     // "colors_by_scope": [
     //     "constant.language", // AA2
-    //     "entity.name", // AA8
+    //     "diff.changed", // AA8
     //     "entity.name.filename", // AA9
     //     "entity.name.tag", // AA10
     //     "markup.heading punctuation.definition.heading", // AA17
@@ -42,8 +42,6 @@
     //     "message.error", // AA25
     //     "meta.diff", // AA26
     //     "punctuation.definition.thematic-break", // AA29
-    //     "constant.numeric.line-number.find-in-files", // AA3
-    //     "comment", // AA1
     //     "diff.deleted", // AA4
     //     "diff.deleted.char", // AA5
     //     "diff.inserted", // AA6
