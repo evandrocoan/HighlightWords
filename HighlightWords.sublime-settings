@@ -31,17 +31,12 @@
     //     "diff.changed", // AA8
     //     "entity.name.filename", // AA9
     //     "entity.name.tag", // AA10
-    //     "markup.heading punctuation.definition.heading", // AA17
     //     "markup.underline.link", // AA24
     //     "invalid.deprecated", // AA14
     //     "markup.quote", // AA22
     //     "markup.list.unnumbered.bullet", // AA21
-    //     "meta.structure.dictionary.json string.quoted.double.json", // AA27
     //     "invalid", // AA13
-    //     "markup.raw", // AA23
     //     "message.error", // AA25
-    //     "meta.diff", // AA26
-    //     "punctuation.definition.thematic-break", // AA29
     //     "diff.deleted", // AA4
     //     "diff.deleted.char", // AA5
     //     "diff.inserted", // AA6
