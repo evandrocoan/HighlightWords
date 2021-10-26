@@ -4,7 +4,7 @@ import sys
 import re
 import functools
 
-import pushdown
+import lark
 import threading
 
 from debug_tools import getLogger
@@ -25,7 +25,7 @@ KEYWORD_MAP = []
 # Debugger settings: 0 - disabled, 127 - enabled
 log = getLogger( 1, __name__ )
 
-_parser = pushdown.Lark( r"""
+_parser = lark.Lark( r"""
 start: SEARCH* | WORDS* | SEARCH+ WORDS+
 
 WORDS: /[^\/].*/
