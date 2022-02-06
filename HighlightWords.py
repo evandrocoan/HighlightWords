@@ -642,6 +642,15 @@ class HighlightKeywordsCommand(sublime_plugin.EventListener):
         self.stamp = stamp
         threading.Thread( target=delayedFix, args=(self, stamp) ).start()
 
+def get_setting_value(name, default):
+    value = SETTINGS.get(name, default)
+    # TypeError: 'NoneType' object is not iterable
+    # https://github.com/evandrocoan/HighlightWords/issues/2
+    if value is None:
+        print("HighlightWords: If you just installed this package, please restart Sublime Text before continuing...")
+        return default
+    return value
+
 
 def get_settings():
     global SETTINGS
@@ -656,15 +665,15 @@ def get_settings():
     global ACTIVE_SELECTION_WORD
 
     SETTINGS = sublime.load_settings('HighlightWords.sublime-settings')
-    USE_REGEX = SETTINGS.get('use_regex', False)
-    IGNORE_CASE = SETTINGS.get('ignore_case', False)
-    WHOLE_WORD = SETTINGS.get('whole_word', False)
-    UNDER_THE_CURSOR = SETTINGS.get('under_the_cursor', True)
-    CLEAR_ON_ESCAPE = SETTINGS.get('clear_on_escape', False)
-    FILE_SIZE_LIMIT = SETTINGS.get('file_size_limit', 4194304)
-    SCOPES = SETTINGS.get('colors_by_scope', SCOPES)
-    KEYWORD_MAP = SETTINGS.get('permanent_highlight_keyword_color_mappings', [])
-    ACTIVE_SELECTION_WORD = SETTINGS.get('active_selection_word', "comment")
+    USE_REGEX = get_setting_value('use_regex', False)
+    IGNORE_CASE = get_setting_value('ignore_case', False)
+    WHOLE_WORD = get_setting_value('whole_word', False)
+    UNDER_THE_CURSOR = get_setting_value('under_the_cursor', True)
+    CLEAR_ON_ESCAPE = get_setting_value('clear_on_escape', False)
+    FILE_SIZE_LIMIT = get_setting_value('file_size_limit', 4194304)
+    SCOPES = get_setting_value('colors_by_scope', SCOPES)
+    KEYWORD_MAP = get_setting_value('permanent_highlight_keyword_color_mappings', [])
+    ACTIVE_SELECTION_WORD = get_setting_value('active_selection_word', "comment")
     return SETTINGS
 
 def plugin_loaded():
