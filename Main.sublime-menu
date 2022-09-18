@@ -1,6 +1,6 @@
 [
 	{
-		"id": "edit",
+		"id": "view",
 		"children":
 		[
 			{
@@ -8,8 +8,10 @@
 				"id": "highlight_words",
 				"children":
 				[
-					{ "command": "highlight_words" },
-					{ "command": "unhighlight_words" },
+					{ "command": "highlight_words", "caption": "Highlight Words (for View)" },
+					{ "command": "highlight_words", "args": {"perwindow": true }, "caption": "Highlight Words (for Window)" },
+					{ "command": "highlight_words", "args": {"perapplication": true }, "caption": "Highlight Words (for Application)" },
+					{ "command": "unhighlight_words", "caption": "Unhighlight Words" },
 					{ "command": "highlight_settings", "caption": "Toggle Settings" }
 				]
 			}
@@ -17,7 +19,6 @@
 	},
 
 	{
-		"caption": "Preferences",
 		"mnemonic": "n",
 		"id": "preferences",
 		"children":
